@@ -15,19 +15,31 @@ limitations under the License.*/
 package cert
 
 import (
-	"fmt"
+	"log"
+	"strings"
 
+	"github.com/aescanero/micropki/pki"
+	"github.com/aescanero/openldap-controller/utils"
 	"github.com/spf13/cobra"
 )
 
-var name string
+var (
+	caname      string
+	certname    string
+	namespace   string
+	client      bool
+	caNamespace string
+	fqdns       string
+)
 
 func init() {
 	CERTCmd.AddCommand(newCERTCmd)
-	newCERTCmd.Flags().StringVarP(&name, "certname", "", "", "Name of the secret where the CERT is saved (Default: micropki-cert)")
-	newCERTCmd.Flags().StringVarP(&name, "certnamespace", "", "", "Name of the namespace where the secret of the CERT is saved (Default: where is running micropki)")
-	newCERTCmd.Flags().StringVarP(&name, "caname", "", "", "Name of the secret where the CA is saved (Default: micropki-ca)")
-	newCERTCmd.Flags().StringVarP(&name, "canamespace", "", "", "Name of the namespace where the secret of the CA is saved (Default: where is running micropki)")
+	newCERTCmd.Flags().StringVarP(&caname, "caname", "", "", "Name of the secret where the CA is saved (Default: micropki-ca)")
+	newCERTCmd.Flags().StringVarP(&certname, "certname", "", "", "Name of the secret where the CERT is saved (Default: micropki-cert)")
+	newCERTCmd.Flags().StringVarP(&namespace, "certnamespace", "", "", "Name of the namespace where the secret of the CERT is saved (Default: where is running micropki)")
+	newCERTCmd.Flags().BoolVarP(&client, "client", "", false, "The cert is for a server or a cliente (default: server)")
+	newCERTCmd.Flags().StringVarP(&caNamespace, "canamespace", "", "", "Name of the namespace where the secret of the CA is saved (Default: where is running micropki)")
+	newCERTCmd.Flags().StringVarP(&fqdns, "hosts", "", "", "FQDN Host list separated by ','")
 }
 
 var newCERTCmd = &cobra.Command{
@@ -35,6 +47,22 @@ var newCERTCmd = &cobra.Command{
 	Short: "Create a new cert and save in a secret, needs the secret ca",
 	Long:  `Create a new cert and save in a secret, needs the secret ca`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Disasterproject's Openldap Controller v0.1 -- HEAD")
+		mycert := pki.CERT{}
+		hosts := strings.Split(fqdns, ",")
+		mycert.SetupCERT(client, hosts)
+		if caname == "" {
+			caname = utils.GetEnv("CASECRETNAME", "micropki-ca")
+		}
+		err := mycert.NewCERT(caname, namespace)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if certname == "" {
+			certname = utils.GetEnv("CERTSECRETNAME", "micropki-cert")
+		}
+		err = mycert.SaveToSecret(certname)
+		if err != nil {
+			log.Fatal(err)
+		}
 	},
 }

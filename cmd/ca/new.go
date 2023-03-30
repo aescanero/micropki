@@ -22,12 +22,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var name string
+var (
+	name      string
+	namespace string
+)
 
 func init() {
 	CACmd.AddCommand(newCACmd)
 	newCACmd.Flags().StringVarP(&name, "name", "", "", "Name of the secret where the CA is saved (Default: micropki-ca)")
-	newCACmd.Flags().StringVarP(&name, "namespace", "", "", "Name of the namespace where the secret of the CA is saved (Default: where is running micropki)")
+	newCACmd.Flags().StringVarP(&namespace, "namespace", "", "", "Name of the namespace where the secret of the CA is saved (Default: where is running micropki)")
 }
 
 var newCACmd = &cobra.Command{
@@ -35,7 +38,7 @@ var newCACmd = &cobra.Command{
 	Short: "Create a new CA and save in a secret",
 	Long:  `Create a new CA and save in a secret`,
 	Run: func(cmd *cobra.Command, args []string) {
-		myca := pki.CA{}
+		myca := new(pki.CA)
 		myca.SetupCA()
 		err := myca.NewCA()
 		if err != nil {
