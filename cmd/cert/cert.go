@@ -18,7 +18,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var ()
+var (
+	caname      string
+	certname    string
+	namespace   string
+	client      bool
+	caNamespace string
+	fqdns       string
+)
 
 func init() {
 }

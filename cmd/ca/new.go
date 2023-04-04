@@ -18,6 +18,7 @@ import (
 	"log"
 
 	"github.com/aescanero/micropki/pki"
+	"github.com/aescanero/micropki/vars"
 	"github.com/aescanero/openldap-controller/utils"
 	"github.com/spf13/cobra"
 )
@@ -47,7 +48,11 @@ var newCACmd = &cobra.Command{
 		if name == "" {
 			name = utils.GetEnv("SECRETNAME", "micropki-ca")
 		}
-		err = myca.SaveToSecret(name)
+		namespace, err := vars.ValidateNamespace(namespace)
+		if err != nil {
+			panic(err.Error())
+		}
+		err = myca.SaveToSecret(name, namespace)
 		if err != nil {
 			log.Fatal(err)
 		}

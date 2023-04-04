@@ -19,17 +19,9 @@ import (
 	"strings"
 
 	"github.com/aescanero/micropki/pki"
+	"github.com/aescanero/micropki/vars"
 	"github.com/aescanero/openldap-controller/utils"
 	"github.com/spf13/cobra"
-)
-
-var (
-	caname      string
-	certname    string
-	namespace   string
-	client      bool
-	caNamespace string
-	fqdns       string
 )
 
 func init() {
@@ -53,14 +45,25 @@ var newCERTCmd = &cobra.Command{
 		if caname == "" {
 			caname = utils.GetEnv("CASECRETNAME", "micropki-ca")
 		}
-		err := mycert.NewCERT(caname, namespace)
+		if certname == "" {
+			certname = utils.GetEnv("CERT_SECRET_NAME", "micropki-cert")
+		}
+		caNamespace, err := vars.ValidateNamespace(caNamespace)
+		if err != nil {
+			panic(err.Error())
+		}
+		namespace, err := vars.ValidateNamespace(namespace)
+		if err != nil {
+			panic(err.Error())
+		}
+		err = mycert.NewCERT(caname, caNamespace)
 		if err != nil {
 			log.Fatal(err)
 		}
 		if certname == "" {
 			certname = utils.GetEnv("CERTSECRETNAME", "micropki-cert")
 		}
-		err = mycert.SaveToSecret(certname)
+		err = mycert.SaveToSecret(certname, namespace)
 		if err != nil {
 			log.Fatal(err)
 		}

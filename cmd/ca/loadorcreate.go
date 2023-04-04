@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/aescanero/micropki/pki"
+	"github.com/aescanero/micropki/vars"
 	"github.com/aescanero/openldap-controller/utils"
 	"github.com/spf13/cobra"
 )
@@ -25,8 +26,12 @@ var loadOrCreateCACmd = &cobra.Command{
 		if name == "" {
 			name = utils.GetEnv("SECRETNAME", "micropki-ca")
 		}
+		namespace, err := vars.ValidateNamespace(namespace)
+		if err != nil {
+			panic(err.Error())
+		}
 
-		err := myca.LoadFromSecret(name, namespace)
+		err = myca.LoadFromSecret(name, namespace)
 		if err != nil {
 			log.Fatal("Secret can't be loaded")
 			log.Fatal(err.Error())
