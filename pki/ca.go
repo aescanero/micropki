@@ -2,7 +2,6 @@ package pki
 
 import (
 	"bytes"
-	"context"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -14,13 +13,9 @@ import (
 	"errors"
 	"log"
 	"math/big"
-	"os"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
+	"github.com/aescanero/micropki/secrets"
 )
 
 type CA struct {
@@ -119,101 +114,25 @@ func (myca *CA) NewCA() error {
 	return nil
 }
 
-func (myca *CA) SaveToSecret(name string, namespaces ...string) error {
-	// create the in the cluster configuration
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		panic(err.Error())
-	}
+func (myca *CA) SaveToSecret(name string, namespace string) error {
 
-	var namespace string
-	log.Println("Verify namespace")
-	if len(namespaces) == 0 || namespaces == nil {
-		namespace_b, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
-		if err != nil {
-			panic(err)
-		}
-		log.Println("Loading namespace: " + string(namespace_b))
-		namespace = string(namespace_b)
-	} else {
-		log.Println("Loading namespace")
-		namespace = namespaces[0]
+	data := map[string][]byte{
+		"tls.crt": myca.caPEM.Bytes(),
+		"tls.key": myca.caPrivKeyPEM.Bytes(),
 	}
-
-	// create the client
-	log.Println("Obtain Config")
-	client, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		panic(err.Error())
-	}
-	log.Println("Save Secret")
-	secrets := client.CoreV1().Secrets(namespace)
-	secret := &v1.Secret{
-		TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Secret"},
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace, Labels: map[string]string{
-			"app.kubernetes.io/created-by": "micropki",
-			"app.kubernetes.io/part-of":    "micropki",
-		}},
-		Immutable: new(bool),
-		Type:      v1.SecretTypeTLS,
-		Data: map[string][]byte{
-			"tls.crt": myca.caPEM.Bytes(),
-			"tls.key": myca.caPrivKeyPEM.Bytes(),
-		},
-	}
-
-	if _, err = secrets.Create(context.TODO(), secret, metav1.CreateOptions{}); err != nil {
-		return err
-	}
-
-	log.Println("Secret created")
-
-	return nil
+	return (secrets.Create(name, namespace, data))
 }
 
-func (myca *CA) LoadFromSecret(name string, namespaces ...string) error {
-	var namespace string
+func (myca *CA) LoadFromSecret(name string, namespace string) error {
 	var priv crypto.PrivateKey
-
-	// create the in the cluster configuration
-	config, err := rest.InClusterConfig()
+	data, err := secrets.Get(name, namespace)
 	if err != nil {
-		panic(err.Error())
+		return (err)
 	}
 
-	log.Println("Verify namespace")
-	if len(namespaces) == 0 || namespaces == nil {
-		namespace_b, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
-		if err != nil {
-			panic(err)
-		}
-		log.Println("Loading namespace: " + string(namespace_b))
-		namespace = string(namespace_b)
-	} else {
-		log.Println("Loading namespace")
-		namespace = namespaces[0]
-	}
-
-	// create the client
-	client, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	log.Println("Conf loaded")
-
-	secrets := client.CoreV1().Secrets(namespace)
-	secret, err := secrets.Get(context.Background(), name, metav1.GetOptions{})
-	if err != nil {
-		log.Fatal(err.Error())
-		return err
-	}
-
-	log.Println("Secret loaded")
-
-	myca.caPEM = bytes.NewBuffer(secret.Data["tls.crt"])
+	myca.caPEM = bytes.NewBuffer(data["tls.crt"])
 	log.Println("caPEM loaded")
-	myca.caPrivKeyPEM = bytes.NewBuffer(secret.Data["tls.key"])
+	myca.caPrivKeyPEM = bytes.NewBuffer(data["tls.key"])
 	log.Println("caPrivKeyPEM loaded")
 	der, _ := pem.Decode(myca.caPEM.Bytes())
 	if err != nil || der.Type != "CERTIFICATE" {

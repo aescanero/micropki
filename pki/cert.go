@@ -2,7 +2,6 @@ package pki
 
 import (
 	"bytes"
-	"context"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -17,13 +16,10 @@ import (
 	"net"
 	"net/mail"
 	"net/url"
-	"os"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
+	"github.com/aescanero/micropki/secrets"
+	validatingwebhookconfiguration "github.com/aescanero/micropki/validatingWebhookConfiguration"
 )
 
 type CERT struct {
@@ -82,14 +78,14 @@ func (mycert *CERT) SetupCERT(client bool, hosts []string) {
 	}
 }
 
-func (mycert *CERT) NewCERT(caname string, namespaces ...string) error {
+func (mycert *CERT) NewCERT(caname string, caNamespace ...string) error {
 	var err error
 	var priv crypto.PrivateKey
 	var certBytes []byte
 
 	myca := new(CA)
 	myca.SetupCA()
-	myca.LoadFromSecret(caname)
+	myca.LoadFromSecret(caname, caNamespace[0])
 
 	if myca.keyType == "ecdsa" {
 		priv, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
@@ -148,98 +144,25 @@ func (mycert *CERT) NewCERT(caname string, namespaces ...string) error {
 	return nil
 }
 
-func (mycert *CERT) SaveToSecret(name string, namespaces ...string) error {
-
-	var namespace string
-
-	// create the in the cluster configuration
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		panic(err.Error())
+func (mycert *CERT) SaveToSecret(name string, namespace string) error {
+	data := map[string][]byte{
+		"tls.crt": mycert.certPEM.Bytes(),
+		"tls.key": mycert.certPrivKeyPEM.Bytes(),
 	}
-
-	log.Println("Verify namespace")
-	if len(namespaces) == 0 || namespaces == nil {
-		namespace_b, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
-		if err != nil {
-			panic(err)
-		}
-		log.Println("Loading namespace: " + string(namespace_b))
-		namespace = string(namespace_b)
-	} else {
-		log.Println("Loading namespace")
-		namespace = namespaces[0]
-	}
-
-	// create the client
-	client, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	log.Println("Config loaded")
-	secrets := client.CoreV1().Secrets(namespace)
-	secret := &v1.Secret{
-		TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Secret"},
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace, Labels: map[string]string{
-			"app.kubernetes.io/created-by": "micropki",
-			"app.kubernetes.io/part-of":    "micropki",
-		}},
-		Immutable: new(bool),
-		Type:      v1.SecretTypeTLS,
-		Data: map[string][]byte{
-			"tls.crt": mycert.certPEM.Bytes(),
-			"tls.key": mycert.certPrivKeyPEM.Bytes(),
-		},
-	}
-
-	if _, err = secrets.Create(context.TODO(), secret, metav1.CreateOptions{}); err != nil {
-		log.Fatal(err.Error())
-		return err
-	}
-
-	log.Println("Secret created")
-	return nil
+	return (secrets.Create(name, namespace, data))
 }
 
-func (mycert *CERT) LoadFromSecret(name string, namespaces ...string) error {
+func (mycert *CERT) LoadFromSecret(name string, namespace string) error {
 
-	var namespace string
 	var priv crypto.PrivateKey
 
-	// create the in the cluster configuration
-	config, err := rest.InClusterConfig()
+	data, err := secrets.Get(name, namespace)
 	if err != nil {
-		panic(err.Error())
+		return (err)
 	}
 
-	log.Println("Verify namespace")
-	if len(namespaces) == 0 || namespaces == nil {
-		namespace_b, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
-		if err != nil {
-			panic(err)
-		}
-		log.Println("Loading namespace: " + string(namespace_b))
-		namespace = string(namespace_b)
-	} else {
-		log.Println("Loading namespace")
-		namespace = namespaces[0]
-	}
-
-	// create the client
-	client, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	secrets := client.CoreV1().Secrets(namespace)
-	secret, err := secrets.Get(context.Background(), name, metav1.GetOptions{})
-	if err != nil {
-		panic(err.Error())
-	}
-
-	mycert.certPEM = bytes.NewBuffer(secret.Data["tls.crt"])
-	mycert.certPrivKeyPEM = bytes.NewBuffer(secret.Data["tls.key"])
+	mycert.certPEM = bytes.NewBuffer(data["tls.crt"])
+	mycert.certPrivKeyPEM = bytes.NewBuffer(data["tls.key"])
 
 	der, _ := pem.Decode(mycert.certPEM.Bytes())
 	if err != nil || der.Type != "CERTIFICATE" {
@@ -271,4 +194,8 @@ func (mycert *CERT) LoadFromSecret(name string, namespaces ...string) error {
 		return errors.New("unsupported private key supplied as a public key, cannot convert")
 	}
 	return nil
+}
+
+func (mycert *CERT) UpdateValidatingWebhookConfiguration(name string) error {
+	return (validatingwebhookconfiguration.UpdateValidatingWebhookConfiguration("openldap-operator-validating-webhook-configuration", mycert.certPEM.Bytes()))
 }
