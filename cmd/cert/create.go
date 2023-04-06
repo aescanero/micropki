@@ -10,16 +10,16 @@ import (
 )
 
 func init() {
-	CERTCmd.AddCommand(loadOrCreateCERTCmd)
-	loadOrCreateCERTCmd.Flags().StringVarP(&caname, "caname", "", "", "Name of the secret where the CA is saved (Default: micropki-ca)")
-	loadOrCreateCERTCmd.Flags().StringVarP(&certname, "certname", "", "", "Name of the secret where the CERT is saved (Default: micropki-cert)")
-	loadOrCreateCERTCmd.Flags().StringVarP(&namespace, "certnamespace", "", "", "Name of the namespace where the secret of the CERT is saved (Default: where is running micropki)")
-	loadOrCreateCERTCmd.Flags().BoolVarP(&client, "client", "", false, "The cert is for a server or a cliente (default: server)")
-	loadOrCreateCERTCmd.Flags().StringVarP(&caNamespace, "canamespace", "", "", "Name of the namespace where the secret of the CA is saved (Default: where is running micropki)")
-	loadOrCreateCERTCmd.Flags().StringVarP(&fqdns, "hosts", "", "", "FQDN Host list separated by ','")
+	CERTCmd.AddCommand(CreateCERTCmd)
+	CreateCERTCmd.Flags().StringVarP(&caname, "caname", "", "", "Name of the secret where the CA is saved (Default: micropki-ca)")
+	CreateCERTCmd.Flags().StringVarP(&certname, "certname", "", "", "Name of the secret where the CERT is saved (Default: micropki-cert)")
+	CreateCERTCmd.Flags().StringVarP(&namespace, "certnamespace", "", "", "Name of the namespace where the secret of the CERT is saved (Default: where is running micropki)")
+	CreateCERTCmd.Flags().BoolVarP(&client, "client", "", false, "The cert is for a server or a cliente (default: server)")
+	CreateCERTCmd.Flags().StringVarP(&caNamespace, "canamespace", "", "", "Name of the namespace where the secret of the CA is saved (Default: where is running micropki)")
+	CreateCERTCmd.Flags().StringVarP(&fqdns, "hosts", "", "", "FQDN Host list separated by ','")
 }
 
-var loadOrCreateCERTCmd = &cobra.Command{
+var CreateCERTCmd = &cobra.Command{
 	Use:   "loadorcreate",
 	Short: "Create a new CERT and save in a secret",
 	Long:  `Create a new CERT and save in a secret`,

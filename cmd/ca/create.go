@@ -10,12 +10,12 @@ import (
 )
 
 func init() {
-	CACmd.AddCommand(loadOrCreateCACmd)
-	loadOrCreateCACmd.Flags().StringVarP(&name, "name", "", "", "Name of the secret where the CA is saved (Default: micropki-ca)")
-	loadOrCreateCACmd.Flags().StringVarP(&namespace, "namespace", "", "", "Name of the namespace where the secret of the CA is saved (Default: where is running micropki)")
+	CACmd.AddCommand(CreateCACmd)
+	CreateCACmd.Flags().StringVarP(&name, "name", "", "", "Name of the secret where the CA is saved (Default: micropki-ca)")
+	CreateCACmd.Flags().StringVarP(&namespace, "namespace", "", "", "Name of the namespace where the secret of the CA is saved (Default: where is running micropki)")
 }
 
-var loadOrCreateCACmd = &cobra.Command{
+var CreateCACmd = &cobra.Command{
 	Use:   "loadorcreate",
 	Short: "Create a new CA and save in a secret",
 	Long:  `Create a new CA and save in a secret`,
