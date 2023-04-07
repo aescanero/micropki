@@ -1,6 +1,6 @@
 FROM docker.io/golang:alpine3.17 AS builder
 
-LABEL org.opencontainers.image.authors="Alejandro Escanero Blanco <alejandro.escanero@accenture.com>"
+LABEL org.opencontainers.image.authors="Alejandro Escanero Blanco <alejandro.escanero@disasterproject.com>"
 
 USER 0
 
@@ -15,7 +15,7 @@ RUN go build -a -installsuffix cgo -o micropki .
 
 FROM docker.io/debian:stable-20230227-slim
 
-LABEL org.opencontainers.image.authors="Alejandro Escanero Blanco <alejandro.escanero@accenture.com>"
+LABEL org.opencontainers.image.authors="Alejandro Escanero Blanco <alejandro.escanero@disasterproject.com>"
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
