@@ -32,4 +32,4 @@ USER 1001
 WORKDIR /
 
 ENTRYPOINT ["/micropki"]
-CMD ["ca", "new", "-n","micropki-ca"]
+CMD ["ca","new"]

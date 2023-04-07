@@ -20,7 +20,8 @@ import (
 
 	"github.com/aescanero/micropki/cmd/ca"
 	"github.com/aescanero/micropki/cmd/cert"
-	"github.com/aescanero/micropki/cmd/validate"
+	"github.com/aescanero/micropki/cmd/initpki"
+	"github.com/aescanero/micropki/cmd/webhook"
 	"github.com/spf13/cobra"
 )
 
@@ -48,5 +49,6 @@ func init() {
 	RootCmd.AddCommand(ca.CACmd)
 	RootCmd.AddCommand(cert.CERTCmd)
 	RootCmd.AddCommand(versionCmd)
-	RootCmd.AddCommand(validate.ValidatePkiCmd)
+	RootCmd.AddCommand(initpki.InitPkiCmd)
+	RootCmd.AddCommand(webhook.UpdateCmd)
 }

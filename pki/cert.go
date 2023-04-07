@@ -152,6 +152,27 @@ func (mycert *CERT) SaveToSecret(name string, namespace string) error {
 	return (secrets.Create(name, namespace, data))
 }
 
+func (mycert *CERT) UpdateSecret(name string, namespace string) error {
+
+	data := map[string][]byte{
+		"tls.crt": mycert.certPEM.Bytes(),
+		"tls.key": mycert.certPrivKeyPEM.Bytes(),
+	}
+	return (secrets.Update(name, namespace, data))
+}
+
+func (mycert *CERT) NeedInitialization(name string, namespace string) error {
+	data, err := secrets.Get(name, namespace)
+	if err != nil {
+		return (err)
+	}
+
+	if len(data["tls.crt"]) == 0 || len(data["tls.key"]) == 0 {
+		return (errors.New("need update"))
+	}
+	return nil
+}
+
 func (mycert *CERT) LoadFromSecret(name string, namespace string) error {
 
 	var priv crypto.PrivateKey

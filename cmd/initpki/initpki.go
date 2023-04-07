@@ -1,4 +1,4 @@
-package validate
+package initpki
 
 import (
 	"strings"
@@ -16,21 +16,19 @@ var (
 	client      bool
 	caNamespace string
 	fqdns       string
-	webhook     string
 )
 
 func init() {
-	ValidatePkiCmd.Flags().StringVarP(&caname, "caname", "", "", "Name of the secret where the CA is saved (Default: micropki-ca)")
-	ValidatePkiCmd.Flags().StringVarP(&certname, "certname", "", "", "Name of the secret where the CERT is saved (Default: micropki-cert)")
-	ValidatePkiCmd.Flags().StringVarP(&namespace, "certnamespace", "", "", "Name of the namespace where the secret of the CERT is saved (Default: where is running micropki)")
-	ValidatePkiCmd.Flags().BoolVarP(&client, "client", "", false, "The cert is for a server or a cliente (default: server)")
-	ValidatePkiCmd.Flags().StringVarP(&caNamespace, "canamespace", "", "", "Name of the namespace where the secret of the CA is saved (Default: where is running micropki)")
-	ValidatePkiCmd.Flags().StringVarP(&fqdns, "hosts", "", "", "FQDN Host list separated by ','")
-	ValidatePkiCmd.Flags().StringVarP(&webhook, "webhook", "", "", "Name of the webhook")
+	InitPkiCmd.Flags().StringVarP(&caname, "caname", "", "", "Name of the secret where the CA is saved (Default: micropki-ca)")
+	InitPkiCmd.Flags().StringVarP(&certname, "certname", "", "", "Name of the secret where the CERT is saved (Default: micropki-cert)")
+	InitPkiCmd.Flags().StringVarP(&namespace, "certnamespace", "", "", "Name of the namespace where the secret of the CERT is saved (Default: where is running micropki)")
+	InitPkiCmd.Flags().BoolVarP(&client, "client", "", false, "The cert is for a server or a cliente (default: server)")
+	InitPkiCmd.Flags().StringVarP(&caNamespace, "canamespace", "", "", "Name of the namespace where the secret of the CA is saved (Default: where is running micropki)")
+	InitPkiCmd.Flags().StringVarP(&fqdns, "hosts", "", "", "FQDN Host list separated by ','")
 }
 
-var ValidatePkiCmd = &cobra.Command{
-	Use:   "validate",
+var InitPkiCmd = &cobra.Command{
+	Use:   "initpki",
 	Short: "Prepare all the pki stuff",
 	Long:  `Prepare all the pki stuff`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -57,7 +55,7 @@ var ValidatePkiCmd = &cobra.Command{
 			myca.SaveToSecret(caname, caNamespace)
 		}
 		mycert := new(pki.CERT)
-		mycert.SetupCERT(false, strings.Split(fqdns, ","))
+		mycert.SetupCERT(client, strings.Split(fqdns, ","))
 		err = mycert.LoadFromSecret(certname, namespace)
 		if err != nil {
 			err = mycert.NewCERT(caname, caNamespace)
@@ -69,5 +67,4 @@ var ValidatePkiCmd = &cobra.Command{
 				panic(err.Error())
 			}
 		}
-		mycert.UpdateValidatingWebhookConfiguration(webhook)
 	}}

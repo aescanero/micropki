@@ -123,6 +123,27 @@ func (myca *CA) SaveToSecret(name string, namespace string) error {
 	return (secrets.Create(name, namespace, data))
 }
 
+func (myca *CA) UpdateSecret(name string, namespace string) error {
+
+	data := map[string][]byte{
+		"tls.crt": myca.caPEM.Bytes(),
+		"tls.key": myca.caPrivKeyPEM.Bytes(),
+	}
+	return (secrets.Update(name, namespace, data))
+}
+
+func (myca *CA) NeedInitialization(name string, namespace string) error {
+	data, err := secrets.Get(name, namespace)
+	if err != nil {
+		return (err)
+	}
+
+	if len(data["tls.crt"]) == 0 || len(data["tls.key"]) == 0 {
+		return (errors.New("need update"))
+	}
+	return nil
+}
+
 func (myca *CA) LoadFromSecret(name string, namespace string) error {
 	var priv crypto.PrivateKey
 	data, err := secrets.Get(name, namespace)
