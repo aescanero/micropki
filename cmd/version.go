@@ -28,6 +28,6 @@ var versionCmd = &cobra.Command{
 	Short: "Print the version of Disasterproject's micropki",
 	Long:  `Print the version of Disasterproject's micropki`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Disasterproject's micropki v0.1 -- HEAD")
+		fmt.Println("Disasterproject's micropki v0.1.1 -- HEAD")
 	},
 }
