@@ -8,28 +8,15 @@ RUN apk --no-cache add ca-certificates && mkdir /data
 
 WORKDIR /data/
 COPY . .
-#COPY go.sum .
-#COPY app.go .
 
 RUN go build -a -installsuffix cgo -o micropki .
 
-FROM docker.io/debian:stable-20230227-slim
-
+# Use distroless as minimal base image to package the manager binary
+# Refer to https://github.com/GoogleContainerTools/distroless for more details
+FROM gcr.io/distroless/static:nonroot
 LABEL org.opencontainers.image.authors="Alejandro Escanero Blanco <alejandro.escanero@disasterproject.com>"
-
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
-        slapd ldap-utils gettext-base procps ca-certificates && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    mv /etc/ldap /etc/openldap && \
-    rm -f /var/lib/ldap/*
-
-COPY --from=builder /data/micropki /.
-
-USER 1001
-
 WORKDIR /
-
+COPY --from=builder /data/micropki /.
+USER 65532:65532
 ENTRYPOINT ["/micropki"]
 CMD ["ca","new"]
