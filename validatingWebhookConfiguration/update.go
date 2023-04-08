@@ -2,6 +2,7 @@ package validatingwebhookconfiguration
 
 import (
 	"context"
+	"log"
 
 	b64 "encoding/base64"
 
@@ -12,7 +13,7 @@ import (
 )
 
 func UpdateValidatingWebhookConfiguration(name string, pem []byte) error {
-	// create the in the cluster configuration
+	log.Println("Obtain Config")
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		panic(err.Error())
@@ -24,11 +25,12 @@ func UpdateValidatingWebhookConfiguration(name string, pem []byte) error {
 		panic(err.Error())
 	}
 
+	log.Println("Update ValidatingWebhookConfigurations")
 	validatingWebhookConfigurationClient := client.AdmissionregistrationV1().ValidatingWebhookConfigurations()
-	patch := []byte(`[{"op":"replace,"path":"webhooks/0/clientConfig/caBundle","value": "` + b64.StdEncoding.EncodeToString(pem) + `"}]`)
+	patch := []byte(`[{"op":"replace","path":"/webhooks/0/clientConfig/caBundle","value": "` + b64.StdEncoding.EncodeToString(pem) + `"}]`)
 	_, err = validatingWebhookConfigurationClient.Patch(context.TODO(), name, types.JSONPatchType, patch, metav1.PatchOptions{})
 	if err != nil {
-		panic(err)
+		panic(err.Error())
 	}
 	return nil
 }

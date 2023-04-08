@@ -36,7 +36,6 @@ var UpdateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		myca := new(pki.CA)
 		myca.SetupCA()
-
 		if caname == "" {
 			caname = utils.GetEnv("CA_SECRET_NAME", "micropki-ca")
 		}
@@ -52,16 +51,39 @@ var UpdateCmd = &cobra.Command{
 			panic(err.Error())
 		}
 		err = myca.NeedInitialization(caname, caNamespace)
-		if err.Error() != "need update" {
-			panic(err.Error())
+		if err != nil {
+			if err.Error() != "need update" {
+				panic(err.Error())
+			} else {
+				err = myca.NewCA()
+				if err != nil {
+					panic(err.Error())
+				}
+				err = myca.UpdateSecret(caname, caNamespace)
+				if err != nil {
+					panic(err.Error())
+				}
+			}
 		}
-		myca.UpdateSecret(caname, caNamespace)
 		mycert := new(pki.CERT)
 		mycert.SetupCERT(client, strings.Split(fqdns, ","))
 		err = mycert.NeedInitialization(certname, namespace)
-		if err.Error() != "need update" {
-			panic(err.Error())
+		if err != nil {
+			if err.Error() != "need update" {
+				panic(err.Error())
+			} else {
+				err = mycert.NewCERT(caname, caNamespace)
+				if err != nil {
+					panic(err.Error())
+				}
+				err = mycert.UpdateSecret(certname, namespace)
+				if err != nil {
+					panic(err.Error())
+				}
+				err = mycert.UpdateValidatingWebhookConfiguration(webhook)
+				if err != nil {
+					panic(err.Error())
+				}
+			}
 		}
-		mycert.UpdateSecret(certname, namespace)
-		mycert.UpdateValidatingWebhookConfiguration(webhook)
 	}}
