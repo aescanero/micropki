@@ -25,6 +25,10 @@ var (
 	client      bool
 	caNamespace string
 	fqdns       string
+	cafile      string
+	cakeyfile   string
+	certfile    string
+	certkeyfile string
 )
 
 func init() {

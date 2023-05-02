@@ -13,6 +13,7 @@ import (
 	"errors"
 	"log"
 	"math/big"
+	"os"
 	"time"
 
 	"github.com/aescanero/micropki/secrets"
@@ -123,6 +124,23 @@ func (myca *CA) SaveToSecret(name string, namespace string) error {
 	return (secrets.Create(name, namespace, data))
 }
 
+func (myca *CA) SaveToFile(cafile string, cakeyfile string) error {
+
+	err := os.WriteFile(cafile, myca.caPEM.Bytes(), 0644)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	err = os.WriteFile(cakeyfile, myca.caPrivKeyPEM.Bytes(), 0644)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	return nil
+}
+
 func (myca *CA) UpdateSecret(name string, namespace string) error {
 
 	data := map[string][]byte{
@@ -155,6 +173,62 @@ func (myca *CA) LoadFromSecret(name string, namespace string) error {
 	log.Println("caPEM loaded")
 	myca.caPrivKeyPEM = bytes.NewBuffer(data["tls.key"])
 	log.Println("caPrivKeyPEM loaded")
+	der, _ := pem.Decode(myca.caPEM.Bytes())
+	if err != nil || der.Type != "CERTIFICATE" {
+		panic(err.Error())
+	}
+
+	log.Println("caPEM loaded")
+
+	myca.tpl, _ = x509.ParseCertificate(der.Bytes)
+
+	log.Println("tpl loaded")
+
+	derKey, _ := pem.Decode(myca.caPrivKeyPEM.Bytes())
+	if err != nil || der.Type != "CERTIFICATE" {
+		panic(err.Error())
+	}
+
+	priv, err = x509.ParsePKCS8PrivateKey(derKey.Bytes)
+	if err != nil {
+		return err
+	}
+
+	_, ok := priv.(crypto.Signer)
+	if !ok {
+		return errors.New("!!! x509: certificate private key does not implement crypto.Signer")
+	}
+
+	switch priv.(type) {
+	case *ecdsa.PrivateKey:
+		myca.privateKey.ecdsaPrivateKey = priv.(*ecdsa.PrivateKey)
+		myca.keyType = "ecdsa"
+		log.Println("Load ECDSA Key")
+	case *rsa.PrivateKey:
+		myca.keyType = "rsa"
+		myca.privateKey.rsaPrivateKey = priv.(*rsa.PrivateKey)
+		log.Println("Load RSA Key")
+	default:
+		return errors.New("unsupported private key supplied as a public key, cannot convert")
+	}
+
+	return nil
+}
+
+func (myca *CA) LoadFromFile(cafile string, cafilekey string) error {
+	var priv crypto.PrivateKey
+
+	cafileBuf, err := os.ReadFile(cafile)
+	if err != nil {
+		return (err)
+	}
+	myca.caPEM = bytes.NewBuffer(cafileBuf)
+	cafilekeyBuf, err := os.ReadFile(cafilekey)
+	if err != nil {
+		return (err)
+	}
+	myca.caPrivKeyPEM = bytes.NewBuffer(cafilekeyBuf)
+
 	der, _ := pem.Decode(myca.caPEM.Bytes())
 	if err != nil || der.Type != "CERTIFICATE" {
 		panic(err.Error())

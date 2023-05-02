@@ -15,6 +15,7 @@ limitations under the License.*/
 package cert
 
 import (
+	"errors"
 	"log"
 	"strings"
 
@@ -32,6 +33,10 @@ func init() {
 	newCERTCmd.Flags().BoolVarP(&client, "client", "", false, "The cert is for a server or a cliente (default: server)")
 	newCERTCmd.Flags().StringVarP(&caNamespace, "canamespace", "", "", "Name of the namespace where the secret of the CA is saved (Default: where is running micropki)")
 	newCERTCmd.Flags().StringVarP(&fqdns, "hosts", "", "", "FQDN Host list separated by ','")
+	newCERTCmd.Flags().StringVarP(&cafile, "cafile", "", "", "File Path where the CA Cert is saved (Disable save to secret, also need cakeyfile)")
+	newCERTCmd.Flags().StringVarP(&cakeyfile, "cakeyfile", "", "", "File Path where the CA Private Key is saved (Disable save to secret, also need cafile)")
+	newCERTCmd.Flags().StringVarP(&certfile, "certfile", "", "", "File Path where the CA Cert is saved (Disable save to secret, also need certkeyfile)")
+	newCERTCmd.Flags().StringVarP(&certkeyfile, "certkeyfile", "", "", "File Path where the CA Private Key is saved (Disable save to secret, also need certfile)")
 }
 
 var newCERTCmd = &cobra.Command{
@@ -42,6 +47,12 @@ var newCERTCmd = &cobra.Command{
 		mycert := pki.CERT{}
 		hosts := strings.Split(fqdns, ",")
 		mycert.SetupCERT(client, hosts)
+		if cafile != "" && cakeyfile != "" {
+			err := mycert.SaveToFile(cafile, cakeyfile)
+			panic(err.Error())
+		} else if cafile != "" || cakeyfile != "" {
+			panic(errors.New("please use cafile and cakeyfile arguments"))
+		}
 		if caname == "" {
 			caname = utils.GetEnv("CASECRETNAME", "micropki-ca")
 		}
