@@ -31,29 +31,34 @@ var CreateCACmd = &cobra.Command{
 		}
 		if cafile != "" && cakeyfile != "" {
 			err = myca.SaveToFile(cafile, cakeyfile)
-			panic(err.Error())
-		} else if cafile != "" || cakeyfile != "" {
-			panic(errors.New("please use cafile and cakeyfile arguments"))
-		}
-		if name == "" {
-			name = utils.GetEnv("SECRETNAME", "micropki-ca")
-		}
-		namespace, err := vars.ValidateNamespace(namespace)
-		if err != nil {
-			panic(err.Error())
-		}
-
-		err = myca.LoadFromSecret(name, namespace)
-		if err != nil {
-			log.Fatal("Secret can't be loaded")
-			log.Fatal(err.Error())
-			err = myca.NewCA()
 			if err != nil {
 				panic(err.Error())
 			}
-			err = myca.SaveToSecret(name, namespace)
+		} else if cafile != "" || cakeyfile != "" {
+			if err != nil {
+				panic(errors.New("please use cafile and cakeyfile arguments"))
+			}
+		} else {
+			if name == "" {
+				name = utils.GetEnv("SECRETNAME", "micropki-ca")
+			}
+			namespace, err := vars.ValidateNamespace(namespace)
 			if err != nil {
 				panic(err.Error())
+			}
+
+			err = myca.LoadFromSecret(name, namespace)
+			if err != nil {
+				log.Fatal("Secret can't be loaded")
+				log.Fatal(err.Error())
+				err = myca.NewCA()
+				if err != nil {
+					panic(err.Error())
+				}
+				err = myca.SaveToSecret(name, namespace)
+				if err != nil {
+					panic(err.Error())
+				}
 			}
 		}
 	},

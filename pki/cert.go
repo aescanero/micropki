@@ -152,7 +152,11 @@ func (mycert *CERT) NewCERTFromFile(cafile string, cafilekey string) error {
 
 	myca := new(CA)
 	myca.SetupCA()
-	myca.LoadFromFile(cafile, cafilekey)
+	err = myca.LoadFromFile(cafile, cafilekey)
+	if err != nil {
+		myca.NewCA()
+		myca.SaveToFile(cafile, cafilekey)
+	}
 
 	if myca.keyType == "ecdsa" {
 		priv, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)

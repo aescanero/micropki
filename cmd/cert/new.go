@@ -47,36 +47,43 @@ var newCERTCmd = &cobra.Command{
 		mycert := pki.CERT{}
 		hosts := strings.Split(fqdns, ",")
 		mycert.SetupCERT(client, hosts)
-		if cafile != "" && cakeyfile != "" {
-			err := mycert.SaveToFile(cafile, cakeyfile)
-			panic(err.Error())
-		} else if cafile != "" || cakeyfile != "" {
-			panic(errors.New("please use cafile and cakeyfile arguments"))
-		}
-		if caname == "" {
-			caname = utils.GetEnv("CASECRETNAME", "micropki-ca")
-		}
-		if certname == "" {
-			certname = utils.GetEnv("CERT_SECRET_NAME", "micropki-cert")
-		}
-		caNamespace, err := vars.ValidateNamespace(caNamespace)
-		if err != nil {
-			panic(err.Error())
-		}
-		namespace, err := vars.ValidateNamespace(namespace)
-		if err != nil {
-			panic(err.Error())
-		}
-		err = mycert.NewCERT(caname, caNamespace)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if certname == "" {
-			certname = utils.GetEnv("CERTSECRETNAME", "micropki-cert")
-		}
-		err = mycert.SaveToSecret(certname, namespace)
-		if err != nil {
-			log.Fatal(err)
+		if cafile != "" && cakeyfile != "" && certfile != "" && certkeyfile != "" {
+			err := mycert.NewCERTFromFile(cafile, cakeyfile)
+			if err != nil {
+				panic(err.Error())
+			}
+			err = mycert.SaveToFile(certfile, certkeyfile)
+			if err != nil {
+				panic(err.Error())
+			}
+		} else if cafile != "" || cakeyfile != "" || certfile != "" || certkeyfile != "" {
+			panic(errors.New("please use cafile, cakeyfile, certfile, certkeyfile arguments"))
+		} else {
+			if caname == "" {
+				caname = utils.GetEnv("CASECRETNAME", "micropki-ca")
+			}
+			if certname == "" {
+				certname = utils.GetEnv("CERT_SECRET_NAME", "micropki-cert")
+			}
+			caNamespace, err := vars.ValidateNamespace(caNamespace)
+			if err != nil {
+				panic(err.Error())
+			}
+			namespace, err := vars.ValidateNamespace(namespace)
+			if err != nil {
+				panic(err.Error())
+			}
+			err = mycert.NewCERT(caname, caNamespace)
+			if err != nil {
+				log.Fatal(err)
+			}
+			if certname == "" {
+				certname = utils.GetEnv("CERTSECRETNAME", "micropki-cert")
+			}
+			err = mycert.SaveToSecret(certname, namespace)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	},
 }
