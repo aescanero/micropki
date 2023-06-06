@@ -25,7 +25,7 @@ on:
         - main
         - develop
 env:
-  EX_BRANCH: ${{ github.event.inputs.BRANCH || RELEASE_VERSION }}
+  EX_BRANCH: ${{ github.event.inputs.BRANCH || 'develop' }}
 
 jobs:
   buildx:
