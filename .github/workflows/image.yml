@@ -25,19 +25,19 @@ on:
         - main
         - develop
 env:
-  EX_BRANCH: ${{ github.event.inputs.BRANCH || 'develop' }}
+  EX_BRANCH: ${{ github.event.inputs.BRANCH || env.RELEASE_VERSION }}
 
 jobs:
   buildx:
     runs-on: ubuntu-latest
     steps:
-      - name: Set env
-        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-      - name: get
+      - name: checkEnv
         run: |
-         echo "Tag name from GITHUB_REF_NAME: $GITHUB_REF_NAME"
-         echo "Tag name from github.ref_name: ${{  github.ref_name }}"
-         echo "Tag Name: "${{github.event.release.tag_name}}
+          echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+          echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}"
+          echo "Tag name from GITHUB_REF_NAME: $GITHUB_REF_NAME"
+          echo "Tag name from github.ref_name: ${{  github.ref_name }}"
+          echo "Tag Name: "${{github.event.release.tag_name}}
       - name: CheckTag
         run: |
           echo $RELEASE_VERSION
@@ -64,5 +64,5 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           push: true
-          tags: aescanero/micropki/${{ env.RELEASE_VERSION }}:latest
+          tags: aescanero/micropki:latest
     
