@@ -24,6 +24,8 @@ on:
         options:
         - main
         - develop
+env:
+  EX_BRANCH: ${{ github.event.inputs.BRANCH || 'develop' }}
 
 jobs:
   buildx:
@@ -32,8 +34,15 @@ jobs:
       -
         name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: $EX_BRANCH
       - name: Set env
         run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - name: get
+        run: |
+         echo "Tag name from GITHUB_REF_NAME: $GITHUB_REF_NAME"
+         echo "Tag name from github.ref_name: ${{  github.ref_name }}"
+         echo "Tag Name: "${{github.event.release.tag_name}}
       - name: CheckTag
         run: |
           echo $RELEASE_VERSION
@@ -55,5 +64,5 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           push: true
-          tags: micropki/${{ env.RELEASE_VERSION }}:latest
+          tags: aescanero/micropki/${{ env.RELEASE_VERSION }}:latest
     
