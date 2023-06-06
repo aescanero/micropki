@@ -16,6 +16,7 @@ var (
 	client      bool
 	caNamespace string
 	fqdns       string
+	commonname  string
 )
 
 func init() {
@@ -25,6 +26,7 @@ func init() {
 	InitPkiCmd.Flags().BoolVarP(&client, "client", "", false, "The cert is for a server or a cliente (default: server)")
 	InitPkiCmd.Flags().StringVarP(&caNamespace, "canamespace", "", "", "Name of the namespace where the secret of the CA is saved (Default: where is running micropki)")
 	InitPkiCmd.Flags().StringVarP(&fqdns, "hosts", "", "", "FQDN Host list separated by ','")
+	InitPkiCmd.Flags().StringVarP(&commonname, "commonname", "", "", "Common Name of the certificate")
 }
 
 var InitPkiCmd = &cobra.Command{
@@ -55,7 +57,7 @@ var InitPkiCmd = &cobra.Command{
 			myca.SaveToSecret(caname, caNamespace)
 		}
 		mycert := new(pki.CERT)
-		mycert.SetupCERT(client, strings.Split(fqdns, ","))
+		mycert.SetupCERT(client, strings.Split(fqdns, ","), commonname)
 		err = mycert.LoadFromSecret(certname, namespace)
 		if err != nil {
 			err = mycert.NewCERT(caname, caNamespace)

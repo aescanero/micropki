@@ -17,6 +17,7 @@ func init() {
 	CreateCERTCmd.Flags().BoolVarP(&client, "client", "", false, "The cert is for a server or a cliente (default: server)")
 	CreateCERTCmd.Flags().StringVarP(&caNamespace, "canamespace", "", "", "Name of the namespace where the secret of the CA is saved (Default: where is running micropki)")
 	CreateCERTCmd.Flags().StringVarP(&fqdns, "hosts", "", "", "FQDN Host list separated by ','")
+	CreateCERTCmd.Flags().StringVarP(&commonname, "commonname", "", "", "Common Name of the CERT','")
 }
 
 var CreateCERTCmd = &cobra.Command{
@@ -46,7 +47,7 @@ var CreateCERTCmd = &cobra.Command{
 			panic("Secret CA can't be loaded")
 		}
 		mycert := new(pki.CERT)
-		mycert.SetupCERT(false, strings.Split(fqdns, ","))
+		mycert.SetupCERT(false, strings.Split(fqdns, ","), commonname)
 		err = mycert.LoadFromSecret(certname, namespace)
 		if err != nil {
 			err = mycert.NewCERT(caname, caNamespace)

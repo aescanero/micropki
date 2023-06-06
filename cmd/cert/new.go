@@ -46,7 +46,7 @@ var newCERTCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mycert := pki.CERT{}
 		hosts := strings.Split(fqdns, ",")
-		mycert.SetupCERT(client, hosts)
+		mycert.SetupCERT(client, hosts, commonname)
 		if cafile != "" && cakeyfile != "" && certfile != "" && certkeyfile != "" {
 			err := mycert.NewCERTFromFile(cafile, cakeyfile)
 			if err != nil {

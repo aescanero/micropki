@@ -35,7 +35,7 @@ type CERT struct {
 	//pub           *crypto.PrivateKey
 }
 
-func (mycert *CERT) SetupCERT(client bool, hosts []string) {
+func (mycert *CERT) SetupCERT(client bool, hosts []string, commonName string) {
 	mycert.tpl = &x509.Certificate{
 		SerialNumber: big.NewInt(2019),
 		Subject: pkix.Name{
@@ -45,6 +45,7 @@ func (mycert *CERT) SetupCERT(client bool, hosts []string) {
 			Locality:      []string{"Seville"},
 			StreetAddress: []string{""},
 			PostalCode:    []string{""},
+			CommonName:    commonName,
 		},
 		IPAddresses:  []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback},
 		NotBefore:    time.Now(),
