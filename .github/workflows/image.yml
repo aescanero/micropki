@@ -32,6 +32,12 @@ jobs:
       -
         name: Checkout
         uses: actions/checkout@v3
+      - name: Set env
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - name: CheckTag
+        run: |
+          echo $RELEASE_VERSION
+          echo ${{ env.RELEASE_VERSION }}
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -49,5 +55,5 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           push: true
-          tags: user/app:latest
+          tags: micropki/$RELEASE_VERSION:latest
     
