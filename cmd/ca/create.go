@@ -1,6 +1,7 @@
 package ca
 
 import (
+	"errors"
 	"log"
 
 	"github.com/aescanero/micropki/pki"
@@ -13,6 +14,8 @@ func init() {
 	CACmd.AddCommand(CreateCACmd)
 	CreateCACmd.Flags().StringVarP(&name, "name", "", "", "Name of the secret where the CA is saved (Default: micropki-ca)")
 	CreateCACmd.Flags().StringVarP(&namespace, "namespace", "", "", "Name of the namespace where the secret of the CA is saved (Default: where is running micropki)")
+	CreateCACmd.Flags().StringVarP(&cafile, "cafile", "", "", "File Path where the CA Cert is saved (Disable save to secret, also need cakeyfile)")
+	CreateCACmd.Flags().StringVarP(&cakeyfile, "cakeyfile", "", "", "File Path where the CA Private Key is saved (Disable save to secret, also need cafile)")
 }
 
 var CreateCACmd = &cobra.Command{
@@ -22,23 +25,41 @@ var CreateCACmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		myca := new(pki.CA)
 		myca.SetupCA()
-
-		if name == "" {
-			name = utils.GetEnv("SECRETNAME", "micropki-ca")
-		}
-		namespace, err := vars.ValidateNamespace(namespace)
+		err := myca.NewCA()
 		if err != nil {
-			panic(err.Error())
+			log.Fatal(err)
 		}
-
-		err = myca.LoadFromSecret(name, namespace)
-		if err != nil {
-			log.Fatal("Secret can't be loaded")
-			log.Fatal(err.Error())
-			err = myca.NewCA()
+		if cafile != "" && cakeyfile != "" {
+			err = myca.SaveToFile(cafile, cakeyfile)
 			if err != nil {
 				panic(err.Error())
 			}
-			myca.SaveToSecret(name, namespace)
+		} else if cafile != "" || cakeyfile != "" {
+			if err != nil {
+				panic(errors.New("please use cafile and cakeyfile arguments"))
+			}
+		} else {
+			if name == "" {
+				name = utils.GetEnv("SECRETNAME", "micropki-ca")
+			}
+			namespace, err := vars.ValidateNamespace(namespace)
+			if err != nil {
+				panic(err.Error())
+			}
+
+			err = myca.LoadFromSecret(name, namespace)
+			if err != nil {
+				log.Fatal("Secret can't be loaded")
+				log.Fatal(err.Error())
+				err = myca.NewCA()
+				if err != nil {
+					panic(err.Error())
+				}
+				err = myca.SaveToSecret(name, namespace)
+				if err != nil {
+					panic(err.Error())
+				}
+			}
 		}
-	}}
+	},
+}

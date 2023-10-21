@@ -16,6 +16,7 @@ import (
 	"net"
 	"net/mail"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/aescanero/micropki/secrets"
@@ -34,7 +35,26 @@ type CERT struct {
 	//pub           *crypto.PrivateKey
 }
 
-func (mycert *CERT) SetupCERT(client bool, hosts []string) {
+func (mycert *CERT) GetPEM() ([]byte, error) {
+
+	if mycert.certPEM == nil {
+		return make([]byte, 0), errors.New("not initialized")
+	}
+
+	return mycert.certPEM.Bytes(), nil
+
+}
+
+func (mycert *CERT) GetPrivKeyPEM() ([]byte, error) {
+
+	if mycert.certPrivKeyPEM == nil {
+		return make([]byte, 0), errors.New("not initialized")
+	}
+
+	return mycert.certPrivKeyPEM.Bytes(), nil
+}
+
+func (mycert *CERT) SetupCERT(client bool, hosts []string, commonName string) {
 	mycert.tpl = &x509.Certificate{
 		SerialNumber: big.NewInt(2019),
 		Subject: pkix.Name{
@@ -44,6 +64,7 @@ func (mycert *CERT) SetupCERT(client bool, hosts []string) {
 			Locality:      []string{"Seville"},
 			StreetAddress: []string{""},
 			PostalCode:    []string{""},
+			CommonName:    commonName,
 		},
 		IPAddresses:  []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback},
 		NotBefore:    time.Now(),
@@ -144,12 +165,84 @@ func (mycert *CERT) NewCERT(caname string, caNamespace ...string) error {
 	return nil
 }
 
+func (mycert *CERT) NewCERTFromFile(cafile string, cafilekey string) error {
+	var err error
+	var priv crypto.PrivateKey
+	var certBytes []byte
+
+	myca := new(CA)
+	myca.SetupCA()
+	err = myca.LoadFromFile(cafile, cafilekey)
+	if err != nil {
+		myca.NewCA()
+		myca.SaveToFile(cafile, cafilekey)
+	}
+
+	if myca.keyType == "ecdsa" {
+		priv, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			return err
+		}
+		pub := priv.(crypto.Signer).Public()
+		certBytes, err = x509.CreateCertificate(rand.Reader, mycert.tpl, myca.tpl, pub, myca.privateKey.ecdsaPrivateKey)
+		if err != nil {
+			return err
+		}
+
+	} else {
+		priv, err = rsa.GenerateKey(rand.Reader, 3072)
+		if err != nil {
+			return err
+		}
+		pub := priv.(crypto.Signer).Public()
+		certBytes, err = x509.CreateCertificate(rand.Reader, mycert.tpl, myca.tpl, pub, myca.privateKey.ecdsaPrivateKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	mycert.certPEM = new(bytes.Buffer)
+	pem.Encode(mycert.certPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: certBytes,
+	})
+
+	privDER, err := x509.MarshalPKCS8PrivateKey(priv)
+	if err != nil {
+		return err
+	}
+	mycert.certPrivKeyPEM = new(bytes.Buffer)
+	pem.Encode(mycert.certPrivKeyPEM, &pem.Block{
+		Type:  "PRIVATE KEY",
+		Bytes: privDER,
+	})
+
+	return nil
+}
+
 func (mycert *CERT) SaveToSecret(name string, namespace string) error {
 	data := map[string][]byte{
 		"tls.crt": mycert.certPEM.Bytes(),
 		"tls.key": mycert.certPrivKeyPEM.Bytes(),
 	}
 	return (secrets.Create(name, namespace, data))
+}
+
+func (mycert *CERT) SaveToFile(certfile string, certkeyfile string) error {
+
+	err := os.WriteFile(certfile, mycert.certPEM.Bytes(), 0644)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	err = os.WriteFile(certkeyfile, mycert.certPrivKeyPEM.Bytes(), 0644)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	return nil
 }
 
 func (mycert *CERT) UpdateSecret(name string, namespace string) error {
@@ -184,6 +277,53 @@ func (mycert *CERT) LoadFromSecret(name string, namespace string) error {
 
 	mycert.certPEM = bytes.NewBuffer(data["tls.crt"])
 	mycert.certPrivKeyPEM = bytes.NewBuffer(data["tls.key"])
+
+	der, _ := pem.Decode(mycert.certPEM.Bytes())
+	if err != nil || der.Type != "CERTIFICATE" {
+		panic(err.Error())
+	}
+	mycert.tpl, _ = x509.ParseCertificate(der.Bytes)
+
+	log.Println("tpl loaded")
+
+	derKey, _ := pem.Decode(mycert.certPrivKeyPEM.Bytes())
+	if err != nil || der.Type != "CERTIFICATE" {
+		panic(err.Error())
+	}
+
+	priv, err = x509.ParsePKCS8PrivateKey(derKey.Bytes)
+
+	if err != nil {
+		return err
+	}
+
+	switch priv.(type) {
+	case *ecdsa.PrivateKey:
+		log.Println("Pre ECDSA")
+		mycert.priv = priv //.(*ecdsa.PrivateKey)
+	case *rsa.PrivateKey:
+		mycert.priv = priv //.(*rsa.PrivateKey)
+		log.Println("Load RSA2 Key")
+	default:
+		return errors.New("unsupported private key supplied as a public key, cannot convert")
+	}
+	return nil
+}
+
+func (mycert *CERT) LoadFromFile(certfile string, certfilekey string) error {
+
+	var priv crypto.PrivateKey
+
+	cafileBuf, err := os.ReadFile(certfile)
+	if err != nil {
+		return (err)
+	}
+	mycert.certPEM = bytes.NewBuffer(cafileBuf)
+	cafilekeyBuf, err := os.ReadFile(certfilekey)
+	if err != nil {
+		return (err)
+	}
+	mycert.certPrivKeyPEM = bytes.NewBuffer(cafilekeyBuf)
 
 	der, _ := pem.Decode(mycert.certPEM.Bytes())
 	if err != nil || der.Type != "CERTIFICATE" {

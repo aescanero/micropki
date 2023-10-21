@@ -16,6 +16,7 @@ var (
 	client      bool
 	caNamespace string
 	fqdns       string
+	commonname  string
 	webhook     string
 )
 
@@ -27,6 +28,7 @@ func init() {
 	UpdateCmd.Flags().StringVarP(&caNamespace, "canamespace", "", "", "Name of the namespace where the secret of the CA is saved (Default: where is running micropki)")
 	UpdateCmd.Flags().StringVarP(&fqdns, "hosts", "", "", "FQDN Host list separated by ','")
 	UpdateCmd.Flags().StringVarP(&webhook, "webhook", "", "", "Name of the webhook")
+	UpdateCmd.Flags().StringVarP(&commonname, "commonname", "", "", "Common Name of the CERT','")
 }
 
 var UpdateCmd = &cobra.Command{
@@ -66,7 +68,7 @@ var UpdateCmd = &cobra.Command{
 			}
 		}
 		mycert := new(pki.CERT)
-		mycert.SetupCERT(client, strings.Split(fqdns, ","))
+		mycert.SetupCERT(client, strings.Split(fqdns, ","), commonname)
 		err = mycert.NeedInitialization(certname, namespace)
 		if err != nil {
 			if err.Error() != "need update" {
