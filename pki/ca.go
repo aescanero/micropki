@@ -54,6 +54,25 @@ func (myca *CA) SetupCA() {
 	}
 }
 
+func (myca *CA) GetPEM() ([]byte, error) {
+
+	if myca.caPEM == nil {
+		return make([]byte, 0), errors.New("not initialized")
+	}
+
+	return myca.caPEM.Bytes(), nil
+
+}
+
+func (myca *CA) GetPrivKeyPEM() ([]byte, error) {
+
+	if myca.caPrivKeyPEM == nil {
+		return make([]byte, 0), errors.New("not initialized")
+	}
+
+	return myca.caPrivKeyPEM.Bytes(), nil
+}
+
 func (myca *CA) NewCA() error {
 	// create our private and public key
 	var err error

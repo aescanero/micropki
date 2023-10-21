@@ -37,6 +37,7 @@ func init() {
 	newCERTCmd.Flags().StringVarP(&cakeyfile, "cakeyfile", "", "", "File Path where the CA Private Key is saved (Disable save to secret, also need cafile)")
 	newCERTCmd.Flags().StringVarP(&certfile, "certfile", "", "", "File Path where the CA Cert is saved (Disable save to secret, also need certkeyfile)")
 	newCERTCmd.Flags().StringVarP(&certkeyfile, "certkeyfile", "", "", "File Path where the CA Private Key is saved (Disable save to secret, also need certfile)")
+	newCERTCmd.Flags().StringVarP(&commonname, "commonname", "", "", "Common Name of the CERT','")
 }
 
 var newCERTCmd = &cobra.Command{

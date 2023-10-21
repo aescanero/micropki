@@ -35,6 +35,25 @@ type CERT struct {
 	//pub           *crypto.PrivateKey
 }
 
+func (mycert *CERT) GetPEM() ([]byte, error) {
+
+	if mycert.certPEM == nil {
+		return make([]byte, 0), errors.New("not initialized")
+	}
+
+	return mycert.certPEM.Bytes(), nil
+
+}
+
+func (mycert *CERT) GetPrivKeyPEM() ([]byte, error) {
+
+	if mycert.certPrivKeyPEM == nil {
+		return make([]byte, 0), errors.New("not initialized")
+	}
+
+	return mycert.certPrivKeyPEM.Bytes(), nil
+}
+
 func (mycert *CERT) SetupCERT(client bool, hosts []string, commonName string) {
 	mycert.tpl = &x509.Certificate{
 		SerialNumber: big.NewInt(2019),
